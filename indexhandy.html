@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suchliste</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: gold;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 250px;
+            background: #111;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s;
+        }
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            color: gold;
+            padding: 10px;
+            text-decoration: none;
+            transition: 0.3s;
+            border-radius: 5px;
+            justify-content: center; /* Center the icons */
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background: #333;
+        }
+        .sidebar a i {
+            margin-right: 10px;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #2e2e2e;
+        }
+        .list-item {
+            background: #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.3s;
+        }
+        .list-item:hover {
+            background: #555;
+        }
+        .list-item a {
+            color: lightblue;
+            text-decoration: none;
+            flex-grow: 1;
+        }
+        .list-item a:hover {
+            text-decoration: underline;
+        }
+        .list-item button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background: #555;
+            color: gold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .list-item button:hover {
+            background: #666;
+        }
+        .search-box, .add-form input, .add-form button {
+            padding: 10px;
+            width: calc(100% - 22px);
+            margin: 5px 0;
+            border: 1px solid #444;
+            background: #222;
+            color: gold;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+        .add-form {
+            display: flex;
+            flex-direction: column;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+        }
+        .modal-content {
+            background-color: #2e2e2e;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #444;
+            width: 80%;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .modal-header, .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            margin: 0;
+        }
+        .modal-footer button {
+            background: #555;
+            color: gold;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .modal-footer button:hover {
+            background: #666;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .assigned-links {
+            display: flex;
+            flex-direction: column;
+            margin-top: 20px;
+        }
+        .assigned-link {
+            background: #444;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .assigned-link a {
+            color: lightblue;
+            text-decoration: none;
+            flex-grow: 1;
+        }
+        .assigned-link a:hover {
+            text-decoration: underline;
+        }
+        .remove-link {
+            background: #c0392b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .remove-link:hover {
+            background: #e74c3c;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+                padding: 10px;
+            }
+            .sidebar a {
+                padding: 10px 5px;
+                text-align: center;
+            }
+            .sidebar a span {
+                display: none; /* Hide text labels */
+            }
+            .sidebar a i {
+                font-size: 24px; /* Increase icon size */
+            }
+            .main-content {
+                padding: 10px; /* Reduce padding for mobile */
+            }
+            .list-item {
+                flex-direction: column; /* Stack items vertically */
+                align-items: flex-start; /* Align items to the start */
+            }
+            .list-item button {
+                margin-top: 5px; /* Add margin for buttons */
+            }
+        }
+    </style>
+</head>
+<body onload="loadData()">
+    <div class="container">
+        <div class="sidebar">
+            <a href="#" onclick="showSection('suchliste')" class="active"><i class="fas fa-list"></i></a>
+            <a href="#" onclick="showSection('andere-tools')"><i class="fas fa-tools"></i></a>
+            <a href="#" onclick="showSection('rollen')"><i class="fas fa-filter"></i></a>
+        </div>
+        <div class="main-content">
+            <div id="suchliste">
+                <h2>Suchliste</h2>
+                <input type="text" id="search" class="search-box" placeholder="Name eingeben..." onkeyup="filterList('suchliste')">
+                <div id="list"></div>
+                <div class="add-form">
+                    <input type="text" id="newName" placeholder="Neuer Name">
+                    <input type="text" id="newLink" placeholder="Neuer Link">
+                    <button onclick="addItem('suchliste')">Hinzufügen</button>
+                </div>
+            </div>
+            <div id="andere-tools" style="display: none;">
+                <h2>Andere Such Tools</h2>
+                <input type="text" id="search-tools" class="search-box" placeholder="Name eingeben..." onkeyup="filterList('andere-tools')">
+                <div id="tools-list"></div>
+                <div class="add-form">
+                    <input type="text" id="newToolName" placeholder="Neuer Name">
+                    <input type="text" id="newToolLink" placeholder="Neuer Link">
+                    <button onclick="addItem('andere-tools')">Hinzufügen</button>
+                </div>
+            </div>
+            <div id="rollen" style="display: none;">
+                <h2>Rollen</h2>
+                <div id="filter-list"></div>
+                <div class="add-form">
+                    <input type="text" id="newFilterName" placeholder="Rolle">
+                    <button onclick="addFilter()">Hinzufügen</button>
+                </div>
+            </div>
+            <div id="assigned-links" style="display: none;">
+                <h2>Links für Rolle: <span id="currentFilterName"></span></h2>
+                <div id="assigned-list" class="assigned-links"></div>
+                <button onclick="showSection('rollen')">Zurück zu Rollen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Link Selection -->
+    <div id="linkModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Links Zuweisen</h2>
+                <button onclick="closeModal()">X</button>
+            </div>
+            <div class="modal-body" id="link-list"></div>
+            <div class="modal-footer">
+                <button onclick="assignSelectedLinks()">Zuweisen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let predefinedLinks = JSON.parse(localStorage.getItem('predefinedLinks')) || [
+            { name: "Sophie Rain", link: "https://mega.nz/folder/koxgEQ4T#X7K6abB05783xeLv5Lte3w" },
+            { name: "Soogsx", link: "https://rentry.org/iyim4de5" },
+            { name: "Hannah owo", link: "https://mega.nz/folder/kpIW1JQY#muZPK2xg-sZ2vrwj3B1l_w/folder/Mt4HhAwB" },
+            { name: "Laara2", link: "https://mega.nz/folder/BUA3EB4Z#llEFsEKKqhFtBlP_eb7srQ" },
+            { name: "Lilmochidoll", link: "https://mega.nz/folder/uMUAjKiK#8HsL1Mf3VGx_0BNOSu2WcQ" },
+            { name: "Kajamood", link: "https://mega.nz/folder/uVZgEIBK#z4foka2UWMF9gJcXXxaTZg" },
+            { name: "Bellaraee", link: "https://pastelink.net/1lblbbh2" },
+            { name: "Hannah Becker", link: "https://rentry.co/tvu53769" },
+            { name: "Paola", link: "https://mega.nz/folder/ijgCCYIa#1_FofoE8QPuXsyHJLQqYhQ/folder/D2JxAJSS" },
+            { name: "Themisskitykay", link: "https://mega.nz/folder/V3kgiZJL#jPUaOCAuEqxtEHxwRVyhDQ" },
+            { name: "Ritori2005", link: "https://mega.nz/#F!WN5DDS7S!jP9gGWj9A4ZqMdDC_RCd2Q" },
+            { name: "Vampkira", link: "https://rentry.co/dd66ukrd" },
+            { name: "Starrysighh", link: "https://mega.nz/folder/cIh3xQAb#-yIOehC5_Ef_w7IXVAWRhQ" },
+            { name: "Deliharaige", link: "https://mega.nz/folder/gTFCmTBS#zQ0OggNoyBIykLztMJOoag" },
+            { name: "Halli n lover", link: "https://mega.nz/folder/Y1RlEB4R#GaJ0gBJftKqHZFQxLZqmRg" },
+            { name: "Lena Polanski", link: "https://mega.nz/folder/UEJDmDiD#k_fkw1lad0LKwyippJ3F1Q" },
+            { name: "Abruuak", link: "https://mega.nz/folder/J8BGXJoB#gGn-DSqg8k_E1C4a-mucPA" },
+            { name: "Madison Beer leaks", link: "https://mega.nz/folder/bkclzCBY#t7yvFyxjvF7K6f2-7jh6oQ" },
+            { name: "Megnutt", link: "https://mega.nz/folder/VqVC0I7b#Cg8QLel63PVx5qSbbsLOow" },
+            { name: "Anna Malygon", link: "https://mega.nz/folder/h2kBGShR#lqdW8Wsk7mTPXOoV5r_Q4Q" },
+            { name: "Inkedsophiie", link: "https://mega.nz/folder/TYRUWKwT#gddKM8HReYY-2XcaTdWEcw" },
+            { name: "Breckie Hill", link: "https://rentry.co/9gaxrihv" }
+        ];
+
+        let otherTools = JSON.parse(localStorage.getItem('otherTools')) || [
+            { name: "Noodle Magazine", link: "https://noodlemagazine.com" },
+            { name: "Comics", link: "https://toomics.com" },
+            { name: "The Fappening", link: "https://fappenings.com" },
+            { name: "Sexy Forums", link: "https://fappenings.com" }
+        ];
+
+        let filters = JSON.parse(localStorage.getItem('filters')) || [];
+
+        function loadData() {
+            loadList('suchliste', predefinedLinks);
+            loadList('andere-tools', otherTools);
+            loadFilters();
+        }
+
+        function loadList(section, data) {
+            let list = document.getElementById(section === 'suchliste' ? "list" : "tools-list");
+            list.innerHTML = "";
+            data.forEach(({ name, link }, index) => {
+                let div = document.createElement("div");
+                div.classList.add("list-item");
+                let a = document.createElement("a");
+                a.href = link;
+                a.innerText = name;
+                a.target = "_blank";
+                div.appendChild(a);
+
+                let editButton = document.createElement("button");
+                editButton.innerHTML = '<i class="fas fa-edit"></i>';
+                editButton.onclick = () => editItem(section, index);
+                div.appendChild(editButton);
+
+                let deleteButton = document.createElement("button");
+                deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteButton.onclick = () => deleteItem(section, index);
+                div.appendChild(deleteButton);
+
+                list.appendChild(div);
+            });
+        }
+
+        function filterList(section) {
+            let input = document.getElementById(section === 'suchliste' ? "search" : "search-tools");
+            let filter = input.value.toLowerCase();
+            let list = document.getElementById(section === 'suchliste' ? "list" : "tools-list");
+            let items = list.getElementsByClassName("list-item");
+
+            for (let i = 0; i < items.length; i++) {
+                let a = items[i].getElementsByTagName("a")[0];
+                let txtValue = a.textContent || a.innerText;
+                if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                    items[i].style.display = "";
+                } else {
+                    items[i].style.display = "none";
+                }
+            }
+        }
+
+        function addItem(section) {
+            let name = document.getElementById(section === 'suchliste' ? "newName" : "newToolName").value;
+            let link = document.getElementById(section === 'suchliste' ? "newLink" : "newToolLink").value;
+            if (name && link) {
+                if (section === 'suchliste') {
+                    predefinedLinks.push({ name, link });
+                    localStorage.setItem('predefinedLinks', JSON.stringify(predefinedLinks));
+                } else {
+                    otherTools.push({ name, link });
+                    localStorage.setItem('otherTools', JSON.stringify(otherTools));
+                }
+                loadList(section, section === 'suchliste' ? predefinedLinks : otherTools);
+                document.getElementById(section === 'suchliste' ? "newName" : "newToolName").value = "";
+                document.getElementById(section === 'suchliste' ? "newLink" : "newToolLink").value = "";
+            } else {
+                alert("Bitte geben Sie sowohl einen Namen als auch einen Link ein.");
+            }
+        }
+
+        function editItem(section, index) {
+            let data = section === 'suchliste' ? predefinedLinks : otherTools;
+            let newName = prompt("Neuer Name:", data[index].name);
+            let newLink = prompt("Neuer Link:", data[index].link);
+            if (newName && newLink) {
+                data[index] = { name: newName, link: newLink };
+                if (section === 'suchliste') {
+                    localStorage.setItem('predefinedLinks', JSON.stringify(predefinedLinks));
+                } else {
+                    localStorage.setItem('otherTools', JSON.stringify(otherTools));
+                }
+                loadList(section, data);
+            }
+        }
+
+        function deleteItem(section, index) {
+            if (confirm("Sind Sie sicher, dass Sie diesen Eintrag löschen möchten?")) {
+                if (section === 'suchliste') {
+                    predefinedLinks.splice(index, 1);
+                    localStorage.setItem('predefinedLinks', JSON.stringify(predefinedLinks));
+                } else {
+                    otherTools.splice(index, 1);
+                    localStorage.setItem('otherTools', JSON.stringify(otherTools));
+                }
+                loadList(section, section === 'suchliste' ? predefinedLinks : otherTools);
+            }
+        }
+
+        function loadFilters() {
+            let filterList = document.getElementById("filter-list");
+            filterList.innerHTML = "";
+            filters.forEach((filter, index) => {
+                let div = document.createElement("div");
+                div.classList.add("list-item");
+                div.innerText = filter.name;
+
+                let assignButton = document.createElement("button");
+                assignButton.innerText = "Zuweisen";
+                assignButton.onclick = () => openModal(index);
+                div.appendChild(assignButton);
+
+                let editButton = document.createElement("button");
+                editButton.innerHTML = '<i class="fas fa-edit"></i>';
+                editButton.onclick = () => editFilter(index);
+                div.appendChild(editButton);
+
+                let deleteButton = document.createElement("button");
+                deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteButton.onclick = () => deleteFilter(index);
+                div.appendChild(deleteButton);
+
+                let viewButton = document.createElement("button");
+                viewButton.innerText = "Anzeigen";
+                viewButton.onclick = () => viewAssignedLinks(index);
+                div.appendChild(viewButton);
+
+                filterList.appendChild(div);
+            });
+        }
+
+        function addFilter() {
+            let filterName = document.getElementById("newFilterName").value;
+            if (filterName) {
+                filters.push({ name: filterName, assignedLinks: [] });
+                localStorage.setItem('filters', JSON.stringify(filters));
+                loadFilters();
+                document.getElementById("newFilterName").value = "";
+            } else {
+                alert("Bitte geben Sie einen Filternamen ein.");
+            }
+        }
+
+        function openModal(filterIndex) {
+            let linkList = document.getElementById("link-list");
+            linkList.innerHTML = ""; // Clear previous selections
+            predefinedLinks.forEach(({ name, link }) => {
+                let checkboxDiv = document.createElement("div");
+                checkboxDiv.classList.add("checkbox-item");
+                let checkbox = document.createElement("input");
+                checkbox.type = "checkbox";
+                checkbox.value = link; // Store the link as the value
+                checkbox.id = link; // Use the link as the ID for the checkbox
+                let label = document.createElement("label");
+                label.htmlFor = link;
+                label.innerText = name;
+                checkboxDiv.appendChild(checkbox);
+                checkboxDiv.appendChild(label);
+                linkList.appendChild(checkboxDiv);
+            });
+            document.getElementById("linkModal").style.display = "block";
+            window.currentFilterIndex = filterIndex; // Store the current filter index
+        }
+
+        function closeModal() {
+            document.getElementById("linkModal").style.display = "none";
+        }
+
+        function assignSelectedLinks() {
+            let checkboxes = document.querySelectorAll("#link-list input[type='checkbox']");
+            let selectedLinks = [];
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selectedLinks.push({ name: checkbox.nextSibling.innerText, link: checkbox.value });
+                }
+            });
+            filters[window.currentFilterIndex].assignedLinks = selectedLinks; // Assign selected links to the filter
+            localStorage.setItem('filters', JSON.stringify(filters));
+            closeModal();
+            alert("Links erfolgreich zugewiesen!");
+        }
+
+        function viewAssignedLinks(index) {
+            let filter = filters[index];
+            document.getElementById("currentFilterName").innerText = filter.name;
+            let assignedList = document.getElementById("assigned-list");
+            assignedList.innerHTML = "";
+
+            filter.assignedLinks.forEach(({ name, link }) => {
+                let div = document.createElement("div");
+                div.classList.add("assigned-link");
+                let a = document.createElement("a");
+                a.href = link;
+                a.innerText = name;
+                a.target = "_blank";
+                div.appendChild(a);
+
+                // Add remove button
+                let removeButton = document.createElement("button");
+                removeButton.innerText = "Entfernen";
+                removeButton.classList.add("remove-link");
+                removeButton.onclick = () => removeAssignedLink(index, link);
+                div.appendChild(removeButton);
+
+                assignedList.appendChild(div);
+            });
+
+            showSection('assigned-links');
+        }
+
+        function removeAssignedLink(filterIndex, linkToRemove) {
+            filters[filterIndex].assignedLinks = filters[filterIndex].assignedLinks.filter(link => link.link !== linkToRemove);
+            localStorage.setItem('filters', JSON.stringify(filters));
+            viewAssignedLinks(filterIndex); // Refresh the assigned links view
+        }
+
+        function editFilter(index) {
+            let newFilterName = prompt("Neuer Filter Name:", filters[index].name);
+            if (newFilterName) {
+                filters[index].name = newFilterName;
+                localStorage.setItem('filters', JSON.stringify(filters));
+                loadFilters();
+            }
+        }
+
+        function deleteFilter(index) {
+            if (confirm("Sind Sie sicher, dass Sie diesen Filter löschen möchten?")) {
+                filters.splice(index, 1);
+                localStorage.setItem('filters', JSON.stringify(filters));
+                loadFilters();
+            }
+        }
+
+        function showSection(sectionId) {
+            let sections = document.querySelectorAll('.main-content > div');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId).style.display = 'block';
+            loadFilters(); // Load filters when showing the Rollen section
+
+            let links = document.querySelectorAll('.sidebar a');
+            links.forEach(link => {
+                link.classList.remove('active');
+            });
+            document.querySelector(`.sidebar a[onclick="showSection('${sectionId}')"]`).classList.add('active');
+        }
+    </script>
+</body>
+</html>
